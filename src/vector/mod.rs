@@ -3,41 +3,56 @@ pub fn new(size: usize) -> Vec<i32> {
     Vec::with_capacity(size)
 }
 
-pub fn equal_size(vec1: &Vec<i32>, vec2: &Vec<i32>) -> bool {
-    vec1.len() == vec2.len()
-}
-
-pub fn sum(vec1: &Vec<i32>, vec2: &Vec<i32>)
-        -> Result<Vec<i32>, String> {
-
-    if equal_size(vec1, vec2) {
-        let mut result = new(vec1.len());
-
-        for i in 0..result.capacity() {
-            let sum = vec1.get(i).unwrap()
-                    + vec2.get(i).unwrap();
-            result.push(sum);
-        }
-        return Ok(result)
+pub fn equal_size(vec1: &[i32], vec2: &[i32]) -> Result<(), String> {
+    if vec1.len() == vec2.len() {
+        return Ok(());
     }
-
-    Err(format!("Vectors are not the same size
-            -> 1: {}, 2: {}",
+    Err(format!("Vectors are not the same size -> 1: {}, 2: {}",
         vec1.len(), vec2.len()))
 }
 
-pub fn diff(min: &Vec<i32>,subs: &Vec<i32>)
-        -> Result<Vec<i32>, String> {
+pub fn sum(vec1: &[i32], vec2: &[i32]) -> Result<Vec<i32>, String> {
 
+    equal_size(vec1, vec2)?;
+
+    let mut iter_2 = vec2.iter();
+    Ok(vec1.iter().map(|e| {
+        let mut x = 0;
+        if let Some(val) = iter_2.next() {
+            x = e + val;
+        };
+        x
+    })
+    .collect::<Vec<i32>>())
+}
+
+pub fn diff
+        (min: &[i32], subs: &[i32]) -> Result<Vec<i32>, String> {
     sum(min, &scalar_mult(subs, -1))
 }
 
-pub fn scalar_mult(vec: &[i32], scalar: i32) -> Vec<i32> {
-    let mut res = new(vec.len());
-    for val in vec {
-        res.push(val * scalar)
-    }
-    res
+pub fn scalar_mult
+        (vec: &[i32], scalar: i32) -> Vec<i32> {
+    vec.iter()
+        .map(|e| { let x = e * scalar; x })
+        .collect::<Vec<i32>>()
+}
+
+pub fn dot_prod
+    (vec1: &[i32], vec2: &[i32]) -> Result<i32, String> {
+
+    equal_size(vec1, vec2)?;
+
+    let mut iter_2 = vec2.iter();
+
+    Ok(vec1.iter().map(|e| {
+        let mut x = 0;
+        if let Some(val) = iter_2.next() {
+            x = e * val;
+        }
+        return x
+    })
+    .sum())
 }
 
 pub mod identity {

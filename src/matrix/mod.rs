@@ -43,18 +43,71 @@ impl Matrix {
         result
     }
 
+    pub fn get(&self, i_row: usize, i_col: usize) -> Result<i32, String> {
+        if let Some(row) = self.row(i_row) {
+            if let Some(entry) = row.get(i_col) {
+                return Ok(*entry);
+            }
+        }
+        Err(format!("Index ({}, {}) not found", i_row, i_col))
+    }
+
     pub fn transpose(&self) -> Matrix {
         Self::from(self.cols())
     }
 
-    pub fn diagonal() -> () {
+    pub fn sub_matrix(&self, i_row: usize, i_col: usize) -> Matrix {
+        let mut array = Self::empty_array(self.n_rows - 1);
 
+        for x in 0..self.n_rows {
+            let mut row = vector::new(self.n_cols - 1);
+
+            for y in 0..self.n_cols {
+                if y != i_col {
+                    if let Ok(entry) = self.get(x, y) {
+                        row.push(entry);
+                    }
+                }
+            }
+
+            if x != i_row {
+                array.push(row);
+            }
+        }
+        Self::from(array)
+    }
+
+    fn det_2x2(&self) -> Result<i32, &'static str> {
+        let a = self.get(0, 0);
+        let b = self.get(0, 1);
+        let c = self.get(1, 0);
+        let d = self.get(1, 1);
+
+        if a.is_ok() && b.is_ok()
+            && c.is_ok() && d.is_ok() {
+            return Ok(a.unwrap() * d.unwrap()
+                    - (c.unwrap() * b.unwrap()));
+        }
+        Err("Matrix size is not 2x2.")
     }
 
     pub fn det(&self) -> Result<i32, &'static str> {
         if self.is_sqr() {
-            if let Some(vec) = self.array.first() {
+            if self.n_rows == 2 {
+                return self.det_2x2();
+            } else {
+                if let Some(vec) = self.array.first() {
+                    let mut det = 0;
 
+                    for i in 0..vec.len() {
+                        if let Some(entry) = vec.get(i) {
+                            if let Ok(sub_det) = self.sub_matrix(0, i).det() {
+                                det += entry * sub_det;
+                            }
+                        }
+                    }
+                    return Ok(det);
+                }
             }
         }
         Err("Matrix is not square.")
@@ -68,7 +121,7 @@ impl Matrix {
     }
 
     pub fn from(array: Vec<Vec<i32>>) -> Matrix {
-        let (is_empty, n_cols, n_rows) = Self::is_empty(&array);
+        let (is_empty, n_rows, n_cols) = Self::is_empty(&array);
 
         if is_empty {
             return Self::empty();
@@ -99,17 +152,14 @@ impl Matrix {
     }
 
     pub fn rand_sqr(size: usize) -> Matrix {
-        let mut array = Self::empty_array(size);
+        Self::from(Self::rand_array(size, size))
+    }
 
-        for _row in 0..size {
-            let mut vec = vector::new(size);
+    pub fn rand() -> Matrix {
+        let rows = rand::thread_rng().gen_range(1, 5);
+        let cols = rand::thread_rng().gen_range(1, 5);
 
-            for _col in 0..size {
-                vec.push(rand::thread_rng().gen_range(-5, 5));
-            }
-            array.push(vec);
-        };
-        Self::from(array)
+        Self::from(Self::rand_array(rows, cols))
     }
 }
 
@@ -142,8 +192,7 @@ impl Matrix {
             }
             return Ok(Self::from(result));
         }
-        Err(format!("Matrices are not the same size:
-                        1: {}x{}, 2: {}x{}",
+        Err(format!("Matrices are not the same size -> 1: {}x{}, 2: {}x{}",
                     m1.n_cols, m1.n_rows,
                     m2.n_cols, m2.n_rows))
     }
@@ -152,20 +201,47 @@ impl Matrix {
         Self::sum(m1, &Self::scalar_mult(m2, -1))
     }
 
-    pub fn cross_prod() {
-        unimplemented!()
+    pub fn dot_prod(m1: &Matrix, m2: &Matrix) -> Result<Matrix, &'static str> {
+        if m1.n_cols == m2.n_rows {
+            let mut result = Self::empty_array(m1.n_rows);
+
+            for row in 0..result.capacity() {
+                let mut vec = vector::new(m2.n_cols);
+
+                for col in 0..vec.capacity() {
+                    if let Some(v) = m1.row(row) {
+                        if let Ok(prod) = vector::dot_prod(v, &m2.col(col)) {
+                            vec.push(prod);
+                        }
+                    }
+                }
+                result.push(vec);
+            }
+            return Ok(Self::from(result));
+        }
+        Err("Cannot multiply")
     }
 }
 
 impl Matrix {
 
-    fn equal_row_col(m1: &Matrix, m2: &Matrix) -> bool {
-        m1.n_cols == m2.n_rows
-    }
-
     pub fn equal_size(m1: &Matrix, m2: &Matrix) -> bool {
         m1.n_cols == m2.n_cols
             && m1.n_rows == m2.n_rows
+    }
+
+    fn rand_array(n_rows:usize, n_cols: usize) -> Vec<Vec<i32>> {
+        let mut array = Self::empty_array(n_rows);
+
+        for _row in 0..array.capacity() {
+            let mut vec = vector::new(n_cols);
+
+            for _col in 0..vec.capacity() {
+                vec.push(rand::thread_rng().gen_range(-4, 5));
+            }
+            array.push(vec);
+        }
+        array
     }
 
     fn is_empty(array: &Vec<Vec<i32>>) -> (bool, usize, usize) {
